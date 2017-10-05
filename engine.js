@@ -20,6 +20,7 @@ function initGameEngine() {
 }
 
 function updateDisplay() {
+	// Fill the screen with black an update the game clock
 	ctx.fillStyle = "black";
 	ctx.fillRect(0, 0, screenWidth*scale, screenHeight*scale);
 	gameClock++;
@@ -44,10 +45,12 @@ function loadSprite(filePath) {
 
 // Draw a sprite to the screen
 function drawSprite(sprite, x, y) {
+	// Draw and image to the scale of the pixels
 	ctx.drawImage(sprite, Math.round(x) * scale, Math.round(y) * scale, 
 		sprite.width * scale, sprite.height * scale);
 }
 
+// Return if a sprite has collided with anouther sprite
 function testCollition(spriteA, xA, yA, spriteB, xB, yB) {
 	if (xA + spriteA.width > xB && xA < xB + spriteB.width &&
 		yA + spriteA.height > yB && yA < yB + spriteB.height) 
@@ -55,10 +58,5 @@ function testCollition(spriteA, xA, yA, spriteB, xB, yB) {
 		return true;
 	}
 	return false;
-}
-
-window.onerror = function(msg, url, linenumber) {
-    alert('Error message: '+msg+'\nURL: '+url+'\nLine Number: '+linenumber);
-    return true;
 }
 

@@ -9,7 +9,7 @@ var alienSprite = loadSprite("al1");
 var bulletSprite = loadSprite("bullet");
 
 // Define game variables
-var player = [], shields = [], bullets = [];
+var player = [], hasFired = false, shields = [], bullets = [];
 var aliens = [], alienCenter = 0, alienX = 0, alienY = 0;
 
 // On the page finished loading
@@ -29,10 +29,14 @@ window.onload = function() {
 	setInterval(update, 1000/fps);
 }
 
+// Generate a row of shields
 function createShields(count, gap) {
-	const width = shieldSprite.width;
-	const totalWidth = count * (width + gap) - gap;
-	const start = (screenWidth / 2) - (totalWidth / 2);
+	// Calculate the starting point for the shields to gen from
+	var width = shieldSprite.width;
+	var totalWidth = count * (width + gap) - gap;
+	var start = (screenWidth / 2) - (totalWidth / 2);
+	
+	// Start at 'start', place a shield and move foward on width plus gap
 	var x = start;
 	for (var i = 0; i < count; i++) {
 		var shield = new Object();
@@ -42,10 +46,11 @@ function createShields(count, gap) {
 		shields.push(shield);
 		x += width + gap;
 	}
-	alienCenter = (screenWidth / 2) - (totalWidth / 2);
 }
 
+// Generate the grid of aliens
 function createAleins(rows, count, gap) {
+	// Generate a 2d array of aliens
 	for (var y = 0; y < rows; y++) {
 		var row = [];
 		for (var x = 0; x < count; x++) {
@@ -56,114 +61,118 @@ function createAleins(rows, count, gap) {
 		}
 		aliens.push(row);
 	}
+	
+	// Calculate the center point for all the aliens
+	var totalWidth = count * (alienSprite.width + gap);
+	alienCenter = (screenWidth / 2) - (totalWidth / 2);
 }
 
 // Called every frame
 function update() {
 	updateDisplay();
-	drawPlayer();
-	drawAliens();
-	drawShields();
-	drawBullets();
+	updatePlayer();
+	updateAliens();
+	updateShields();
+	updateBullets();
+}
 
+// Test to see if a bullet has collided with a sprite
+function testBullets(sprite, x, y, look) {
+	for (var i = 0; i < bullets.length; i++) {
+		var bullet = bullets[i];
+		if (testCollition(sprite, x, y, bulletSprite, bullet.x, bullet.y)) {
+			/* If there is a collition and it's the type of bullet you're 
+			looking for, then remove the bullet and return true */
+			if (bullet.sender == look || look == "any") {
+				bullets.splice(i, 1);
+				if (bullet.sender == "player")
+					hasFired = false;
+				return bullet.sender;
+			}
+		}
+	}
+	return null;
+}
+
+// Draws the player to the screen
+function updatePlayer() {
+    drawSprite(playerSprite, 
+    	player.position, screenHeight - playerSprite.height - 15);
+	
+	// Move the player based on the buttons pressed
 	if (leftDown) player.position -= speed;
 	if (rightDown) player.position += speed;
-	if (fireDown) {
+	if (fireDown && !hasFired) {
 		var bullet = new Object();
 		bullet.x = player.position + (playerSprite.width / 2);
 		bullet.y = screenHeight - playerSprite.height - 15;
-		bullet.isAlien = false;
+		bullet.sender = "player";
+		bullet.velocity = -2;
 		bullets.push(bullet);
 		fireDown = false;
+		hasFired = true;
+	}
+}
+
+// Draw and test shields collition
+function updateShields() {
+	for (var i = 0; i < shields.length; i++) {
+		var shield = shields[i];
+		drawSprite(shieldSprite, shield.x, shield.y);
+		
+		// Test collition with bullet
+		if (testBullets(shieldSprite, shield.x, shield.y, "any")) {
+			shield.health--;
+			if (shield.health <= 0)
+				shields.splice(i, 1);
+		}
+	}
+}
+
+// Draw, drop random bombs and test bullet collition
+function updateAliens() {
+	for (var y = 0; y < aliens.length; y++) {
+		var row = aliens[y];
+		for (var x = 0; x < row.length; x++) {
+			var alien = row[x];
+			drawSprite(alienSprite, alien.x + alienX, alien.y + alienY);
+			if (Math.random() < 0.001) {
+				dropBomb(alien);
+			}
+			
+			// Test collition with bullet
+			if (testBullets(alienSprite, alien.x + alienX, alien.y + alienY, "player")) {
+				row.splice(x, 1);
+			}
+		}
 	}
 	
 	alienX = alienCenter + Math.sin(gameClock / 20.0) * 18.0;
 	alienY += 0.05;
 }
 
-// Draws the player to the screen
-function drawPlayer() {
-    drawSprite(playerSprite, 
-    	player.position, screenHeight - playerSprite.height - 15);
+// Drop a bomb from an alien
+function dropBomb(alien) {
+	var bullet = new Object();
+	bullet.x = alien.x + alienX + (alienSprite.width / 2);
+	bullet.y = alien.y + alienY;
+	bullet.sender = "alien";
+	bullet.velocity = 2;
+	bullets.push(bullet);
 }
 
-function drawShields() {
-	for (var i = 0; i < shields.length; i++) {
-		var shield = shields[i];
-		drawSprite(shieldSprite, shield.x, shield.y);
-	}
-}
-
-function drawAliens() {
-	for (var y = 0; y < aliens.length; y++) {
-		var row = aliens[y];
-		for (var x = 0; x < row.length; x++) {
-			var alien = row[x];
-			drawSprite(alienSprite, alien.x + alienX, alien.y + alienY);
-			
-			// Drop bullet
-			if (Math.random() < 0.005) {
-				var bullet = new Object();
-				bullet.x = alien.x + alienX + (alienSprite.width / 2);
-				bullet.y = alien.y + alienY;
-				bullet.isAlien = true;
-				bullets.push(bullet);
-			}
-		}
-	}
-}
-
-function drawBullets() {
+// Draw and test if a bullet has gone out of bounds
+function updateBullets() {
 	for (var i = 0; i < bullets.length; i++) {
 		var bullet = bullets[i];
 		drawSprite(bulletSprite, bullet.x, bullet.y);
 		
-		if (bullet.isAlien) {
-			bullet.y += 2;
-			if (bullet.y > screenHeight || testAlienBullet(bullet)) {
-				bullets.splice(i, 1);
-			}
-		}else {
-			bullet.y -= 2;
-			if (bullet.y < 0 || testPlayerBullet(bullet)) {
-				bullets.splice(i, 1);
-			}
-		}
-	}
-}
-
-function testPlayerBullet(bullet) {
-	for (var y = 0; y < aliens.length; y++) {
-		for (var x = 0; x < aliens[y].length; x++) {
-			var alien = aliens[y][x];
-			if (testCollition(bulletSprite, bullet.x, bullet.y, 
-				alienSprite, alien.x + alienX, alien.y + alienY)) 
-			{
-				aliens[y].splice(x, 1);
-				return true;
-			}
-		}
-	}
-	return false;
-}
-
-function testAlienBullet(bullet) {
-	var x = bullet.x, y = bullet.y;
-	var playerY = screenHeight - playerSprite.height - 15;
-	if (testCollition(bulletSprite, x, y, playerSprite, player.position, playerY)) {
-		alert("Game Over!");
-		return true;
-	}
-	
-	for (var i = 0; i < shields.length; i++) {
-		var shield = shields[i];
-		if (testCollition(bulletSprite, x, y, 
-			shieldSprite, shield.x, shield.y)) 
-		{
-			shield.health--;
-			if (shield.health <= 0)
-				shields.splice(i, 1);
-			return true;
+		// If the bullet is out of bounds, then remove it
+		bullet.y += bullet.velocity;
+		if (bullet.y > screenHeight || bullet.y <= 0) {
+			bullets.splice(i, 1);
+			if (bullet.sender == "player")
+				hasFired = false;
 		}
 	}
 }
