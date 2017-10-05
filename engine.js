@@ -65,7 +65,6 @@ function testCircle(sprite, xA, yA, rad, xB, yB) {
 	var yC = yA < yB ? yA + sprite.height : yA;
 	
 	var a = xC - xB, b = yC - yB;
-	console.log(Math.sqrt(a*a + b*b));
 	if (Math.sqrt(a*a + b*b) <= rad / 2) {
 		return true;
 	}
