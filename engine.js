@@ -60,3 +60,14 @@ function testCollition(spriteA, xA, yA, spriteB, xB, yB) {
 	return false;
 }
 
+function testCircle(sprite, xA, yA, rad, xB, yB) {
+	var xC = xA < xB ? xA + sprite.width : xA;
+	var yC = yA < yB ? yA + sprite.height : yA;
+	
+	var a = xC - xB, b = yC - yB;
+	console.log(Math.sqrt(a*a + b*b));
+	if (Math.sqrt(a*a + b*b) <= rad / 2) {
+		return true;
+	}
+	return false;
+}

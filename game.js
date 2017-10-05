@@ -7,9 +7,10 @@ var playerSprite = loadSprite("player");
 var shieldSprite = loadSprite("shield");
 var alienSprite = loadSprite("al1");
 var bulletSprite = loadSprite("bullet");
+var damageSprite = loadSprite("damage");
 
 // Define game variables
-var player = [], hasFired = false, shields = [], bullets = [];
+var player = [], cooldown = 0, shields = [], bullets = [], damage = [];
 var aliens = [], alienCenter = 0, alienX = 0, alienY = 0;
 
 // On the page finished loading
@@ -71,8 +72,8 @@ function createAleins(rows, count, gap) {
 function update() {
 	updateDisplay();
 	updatePlayer();
-	updateAliens();
 	updateShields();
+	updateAliens();
 	updateBullets();
 }
 
@@ -80,14 +81,14 @@ function update() {
 function testBullets(sprite, x, y, look) {
 	for (var i = 0; i < bullets.length; i++) {
 		var bullet = bullets[i];
-		if (testCollition(sprite, x, y, bulletSprite, bullet.x, bullet.y)) {
+		if (testCollition(sprite, x, y, bulletSprite, bullet.x, bullet.y) && 
+			!testDamageCollition(bulletSprite, bullet.x, bullet.y)) 
+		{
 			/* If there is a collition and it's the type of bullet you're 
 			looking for, then remove the bullet and return true */
 			if (bullet.sender == look || look == "any") {
 				bullets.splice(i, 1);
-				if (bullet.sender == "player")
-					hasFired = false;
-				return bullet.sender;
+				return bullet;
 			}
 		}
 	}
@@ -102,7 +103,7 @@ function updatePlayer() {
 	// Move the player based on the buttons pressed
 	if (leftDown) player.position -= speed;
 	if (rightDown) player.position += speed;
-	if (fireDown && !hasFired) {
+	if (fireDown && cooldown <= 0) {
 		var bullet = new Object();
 		bullet.x = player.position + (playerSprite.width / 2);
 		bullet.y = screenHeight - playerSprite.height - 15;
@@ -110,8 +111,9 @@ function updatePlayer() {
 		bullet.velocity = -2;
 		bullets.push(bullet);
 		fireDown = false;
-		hasFired = true;
+		cooldown = 15;
 	}
+	cooldown--;
 }
 
 // Draw and test shields collition
@@ -121,12 +123,15 @@ function updateShields() {
 		drawSprite(shieldSprite, shield.x, shield.y);
 		
 		// Test collition with bullet
-		if (testBullets(shieldSprite, shield.x, shield.y, "any")) {
-			shield.health--;
-			if (shield.health <= 0)
-				shields.splice(i, 1);
+		var bullet = testBullets(shieldSprite, shield.x, shield.y, "any");
+		if (bullet != null) {			
+			var damg = new Object();
+			damg.x = bullet.x;
+			damg.y = bullet.y + bullet.velocity;
+			damage.push(damg);
 		}
 	}
+	drawDamage();
 }
 
 // Draw, drop random bombs and test bullet collition
@@ -171,9 +176,26 @@ function updateBullets() {
 		bullet.y += bullet.velocity;
 		if (bullet.y > screenHeight || bullet.y <= 0) {
 			bullets.splice(i, 1);
-			if (bullet.sender == "player")
-				hasFired = false;
 		}
 	}
+}
+
+// Draws the shield damage to the screen
+function drawDamage() {
+	for (var i = 0; i < damage.length; i++) {
+		var damg = damage[i];
+		drawSprite(damageSprite, damg.x, damg.y);
+	}
+}
+
+function testDamageCollition(sprite, x, y) {
+	for (var i = 0; i < damage.length; i++) {
+		var damg = damage[i];
+		var rad = 2;
+		if (testCircle(sprite, x, y, rad, damg.x + (rad/2), damg.y + (rad/2))) {
+			return true;
+		}
+	}
+	return false;
 }
 
