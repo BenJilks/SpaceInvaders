@@ -50,6 +50,14 @@ function drawSprite(sprite, x, y) {
 		sprite.width * scale, sprite.height * scale);
 }
 
+// Draws text to the screen
+function drawText(str, size, x, y, isCenter, colour) {
+	ctx.fillStyle = colour;
+	ctx.font = size + "px PixelFont";
+	ctx.textAlign = 'center';
+	ctx.fillText(str, x*scale, y*scale);
+}
+
 // Return if a sprite has collided with anouther sprite
 function testCollition(spriteA, xA, yA, spriteB, xB, yB) {
 	if (xA + spriteA.width > xB && xA < xB + spriteB.width &&

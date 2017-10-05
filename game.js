@@ -1,6 +1,7 @@
 
 // Define constants
-const speed = 4;
+const playerSpeed = 4;
+const alienSpeed = 1;
 
 // Game sprites
 var playerSprite = loadSprite("player");
@@ -10,8 +11,9 @@ var bulletSprite = loadSprite("bullet");
 var damageSprite = loadSprite("damage");
 
 // Define game variables
-var player = [], cooldown = 0, shields = [], bullets = [], damage = [];
+var player = [], shields = [], bullets = [], damage = [];
 var aliens = [], alienCenter = 0, alienX = 0, alienY = 0;
+var gameOver = false, cooldown = 0;
 
 // On the page finished loading
 window.onload = function() {
@@ -71,10 +73,14 @@ function createAleins(rows, count, gap) {
 // Called every frame
 function update() {
 	updateDisplay();
-	updatePlayer();
-	updateShields();
-	updateAliens();
-	updateBullets();
+	if (!gameOver) {
+		updatePlayer();
+		updateShields();
+		updateAliens();
+		updateBullets();
+	}else {
+		drawText("Game Over", 70, screenWidth/2, 100, true, "red");
+	}
 }
 
 // Test to see if a bullet has collided with a sprite
@@ -97,12 +103,17 @@ function testBullets(sprite, x, y, look) {
 
 // Draws the player to the screen
 function updatePlayer() {
-    drawSprite(playerSprite, 
-    	player.position, screenHeight - playerSprite.height - 15);
+	var x = player.position, y = screenHeight - playerSprite.height - 15;
+    drawSprite(playerSprite, x, y);
+    
+    console.log(x, y);
+    if (testBullets(playerSprite, x, y, "alien")) {
+    	gameOver = true;
+    }
 	
 	// Move the player based on the buttons pressed
-	if (leftDown) player.position -= speed;
-	if (rightDown) player.position += speed;
+	if (leftDown) player.position -= playerSpeed;
+	if (rightDown) player.position += playerSpeed;
 	if (fireDown && cooldown <= 0) {
 		var bullet = new Object();
 		bullet.x = player.position + (playerSprite.width / 2);
@@ -148,12 +159,13 @@ function updateAliens() {
 			// Test collition with bullet
 			if (testBullets(alienSprite, alien.x + alienX, alien.y + alienY, "player")) {
 				row.splice(x, 1);
+				alienSpeed += 0.1;
 			}
 		}
 	}
 	
-	alienX = alienCenter + Math.sin(gameClock / 20.0) * 18.0;
-	alienY += 0.05;
+	alienX = alienCenter + Math.sin(gameClock * (0.01 * alienSpeed)) * 18.0;
+	alienY += 0.05 * alienSpeed;
 }
 
 // Drop a bomb from an alien
@@ -188,11 +200,11 @@ function drawDamage() {
 	}
 }
 
+// Test is see if a bullet is over a damaged area
 function testDamageCollition(sprite, x, y) {
 	for (var i = 0; i < damage.length; i++) {
 		var damg = damage[i];
-		var rad = 2;
-		if (testCircle(sprite, x, y, rad, damg.x + (rad/2), damg.y + (rad/2))) {
+		if (testCircle(sprite, x, y, 2, damg.x + 1, damg.y + 1)) {
 			return true;
 		}
 	}
