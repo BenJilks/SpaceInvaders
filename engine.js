@@ -51,10 +51,10 @@ function drawSprite(sprite, x, y) {
 }
 
 // Draws text to the screen
-function drawText(str, size, x, y, isCenter, colour) {
+function drawText(str, size, x, y, align, colour) {
 	ctx.fillStyle = colour;
 	ctx.font = size + "px PixelFont";
-	ctx.textAlign = 'center';
+	ctx.textAlign = align;
 	ctx.fillText(str, x*scale, y*scale);
 }
 
@@ -73,7 +73,8 @@ function testCircle(sprite, xA, yA, rad, xB, yB) {
 	var yC = yA < yB ? yA + sprite.height : yA;
 	
 	var a = xC - xB, b = yC - yB;
-	if (Math.sqrt(a*a + b*b) <= rad / 2) {
+	var radOverTwo = rad / 2;
+	if (a*a + b*b <= radOverTwo * radOverTwo) {
 		return true;
 	}
 	return false;

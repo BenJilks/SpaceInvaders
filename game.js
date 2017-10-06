@@ -1,19 +1,22 @@
 
 // Define constants
 const playerSpeed = 4;
-const alienSpeed = 1;
+var alienSpeed = 1;
 
 // Game sprites
 var playerSprite = loadSprite("player");
 var shieldSprite = loadSprite("shield");
-var alienSprite = loadSprite("al1");
+var alienSprite = loadSprite("alien1");
+var alien2Sprite = loadSprite("alien2");
+var alien3Sprite = loadSprite("alien3");
 var bulletSprite = loadSprite("bullet");
 var damageSprite = loadSprite("damage");
 
 // Define game variables
 var player = [], shields = [], bullets = [], damage = [];
-var aliens = [], alienCenter = 0, alienX = 0, alienY = 0;
-var gameOver = false, cooldown = 0;
+var aliens = [], alienCenter = 0, alienWidth = 0;
+var alienX = 0, alienY = 0, alienVel = 1;
+var gameOver = false, gameWin = false, cooldown = 0, score = 0;
 
 // On the page finished loading
 window.onload = function() {
@@ -27,6 +30,7 @@ window.onload = function() {
 	// Create objects
 	createShields(4, 15);
 	createAleins(5, 8, 5);
+	alienY = 22;
 	
 	// Start game loop
 	setInterval(update, 1000/fps);
@@ -66,21 +70,28 @@ function createAleins(rows, count, gap) {
 	}
 	
 	// Calculate the center point for all the aliens
-	var totalWidth = count * (alienSprite.width + gap);
-	alienCenter = (screenWidth / 2) - (totalWidth / 2);
+	alienWidth = count * (alienSprite.width + gap);
+	alienCenter = (screenWidth / 2) - (alienWidth / 2);
 }
 
 // Called every frame
 function update() {
-	updateDisplay();
-	if (!gameOver) {
+	if (!gameOver && !gameWin) {
+		updateDisplay();
 		updatePlayer();
 		updateShields();
 		updateAliens();
 		updateBullets();
+	}else if (gameOver) {
+		drawText("Game Over", 100, screenWidth/2, 100, "center", "red");
 	}else {
-		drawText("Game Over", 70, screenWidth/2, 100, true, "red");
+		drawText("You Win!", 100, screenWidth/2, 100, "center", "Green");
 	}
+	displayScore();
+}
+
+function displayScore() {
+	drawText("Score: " + score, 40, 1, 22, "left", "white");
 }
 
 // Test to see if a bullet has collided with a sprite
@@ -147,25 +158,37 @@ function updateShields() {
 
 // Draw, drop random bombs and test bullet collition
 function updateAliens() {
+	var alienCount = 0;
 	for (var y = 0; y < aliens.length; y++) {
 		var row = aliens[y];
 		for (var x = 0; x < row.length; x++) {
 			var alien = row[x];
-			drawSprite(alienSprite, alien.x + alienX, alien.y + alienY);
-			if (Math.random() < 0.001) {
+			drawSprite(y < 3 ? y < 1 ? alien3Sprite : alien2Sprite : alienSprite, 
+				alien.x + alienX, alien.y + alienY);
+			if (Math.random() < 0.001 + (alienSpeed * 0.0006)) {
 				dropBomb(alien);
 			}
 			
 			// Test collition with bullet
 			if (testBullets(alienSprite, alien.x + alienX, alien.y + alienY, "player")) {
 				row.splice(x, 1);
-				alienSpeed += 0.1;
+				alienSpeed += 0.2;
+				score += aliens.length - y + 1;
 			}
+			alienCount++;
 		}
 	}
 	
-	alienX = alienCenter + Math.sin(gameClock * (0.01 * alienSpeed)) * 18.0;
-	alienY += 0.05 * alienSpeed;
+	// If there are no aliens left, then the player has won the game
+	if (alienCount == 0) {
+		gameWin = true;
+	}
+	
+	alienX += alienVel * (alienSpeed * 0.2);
+	if (alienX + alienWidth >= screenWidth || alienX <= 0) {
+		alienVel = -alienVel;
+		alienY += alienSprite.height / 2;
+	}
 }
 
 // Drop a bomb from an alien
